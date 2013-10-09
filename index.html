@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<!--<script type="text/javascript" src = "second.js"></script>-->
+<script type="text/javascript" src = "../jquery-2.0.3.js"></script>
+<script type="text/javascript" src = "include.js"></script>
+<script src="BoardCell.js"></script>
+<script src="Board.js"></script>
+<script src="Checker.js"></script>
+<script src="CheckersGame.js"></script>
+<style type="text/css">
+	body{
+		margin: 0;
+	}
+</style>
+<script type="text/javascript">
+	$(document).ready(function(){
+		//initGame();
+        $('body').append(new CheckersGame().getEl());
+	});
+</script>
+</head>
+<body>
+</body> 
+</html>

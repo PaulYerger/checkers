@@ -19,7 +19,6 @@ function Board(parent) {
         borderThickness = 2;
     length = length - (indent + borderThickness) * 3;
     board.css({
-        position: 'inherit',
         marginLeft: "auto",
         marginRight: "auto",
         height: length,
@@ -28,8 +27,8 @@ function Board(parent) {
     });
     this.initBoard(board, length, this);
     $('body').ready(function () {
-        thisCmp.initCheckersOfFirst('red');
-        thisCmp.initCheckersOfSecond('yellow');
+//        thisCmp.initCheckersOfFirst('red');
+//        thisCmp.initCheckersOfSecond('yellow');
     });
 
     parentEl.append(board);
@@ -110,48 +109,53 @@ Board.prototype.getPossibleMoves = function (checker) {
     var curPlayer = this.game.curPlayer;
     var coef = curPlayer == 0 ? 1 : -1;
 
-    return this.scanNeighbors(i, j, curPlayer, coef, [this.cells[i][j]], []);
+    return this.scanNeighbors(checker, i, j, curPlayer, coef, [this.cells[i][j]], []);
 
 }
-Board.prototype.scanNeighbors = function (iP, jP, curPlayer, summand, moves, deleted, oldIP, oldJP) {
+Board.prototype.scanNeighbors = function (mainChecker, iP, jP, curPlayer, summand, moves, deleted, oldIP, oldJP) {
     //moves.push(this.cells[iP][jP]);
     // проверкка на возможность хода после удостоверения на отсутствие дальнейших удалений
-    for (var i = -1; i <= 1; i += 2) {
-        for (var j = -1; j <= 1; j += 2) {
-            var iA = iP + i;
-            var jA = jP + j;
-            if (iA >= 0 && iA < this.BOARD_NUMBER &&
-                jA >= 0 && jA < this.BOARD_NUMBER) {
-                var cell1 = this.cells[iA][jA];
-                if (cell1.getChecker() == null) {
-                    if (summand == i)
-                        moves.push(cell1);
-                } else {
-                    if (cell1.getChecker().player != curPlayer) {
-                        var iAA = iA + i,
-                            jAA = jA + j;
-                        if (iAA >= 0 && iAA < this.BOARD_NUMBER &&
-                            jAA >= 0 && jAA < this.BOARD_NUMBER) {
-                            if (this.cells[iAA][jAA].getChecker() == null && (iAA != oldIP || jAA != oldJP)) {
-                                deleted.push(cell1);
-
-                                //
-                                this.cells[iAA][jAA].setDeletedCheckers(
-                                    this.cells[iAA][jAA].getDeletedCheckers().concat(
-                                        this.cells[iP][jP].getDeletedCheckers()
-                                    ));
-                                this.cells[iP][jP].setDeletedCheckers([]);
-                                this.cells[iAA][jAA].addDeletedChecker(cell1.getChecker());
-                                var oldSize = moves.length;
-                                this.scanNeighbors(iAA, jAA, curPlayer, 0, moves, deleted, iP, jP);
-                                if(oldSize == moves.length){
-                                    moves.push(this.cells[iAA][jAA]);
+    for (var it = -1; it <= 1; it += 2) {
+        for (var jt = -1; jt <= 1; jt += 2) {
+            var iA = 1, jA = 1; // for cycle start
+            for (var mn = 1; !mainChecker.king ||
+                 (iA > 0 && iA < this.BOARD_NUMBER - 1 && jA > 0 && jA < this.BOARD_NUMBER-1); mn++) {
+                var i = it*mn, j = jt*mn;
+                iA = iP + i;
+                jA = jP + j;
+                if (iA >= 0 && iA < this.BOARD_NUMBER &&
+                    jA >= 0 && jA < this.BOARD_NUMBER) {
+                    var cell1 = this.cells[iA][jA];
+                    if (cell1.getChecker() == null) {
+                        if (summand == i || mainChecker.king)
+                            moves.push(cell1);
+                    } else {
+                        if (cell1.getChecker().player != curPlayer) {
+                            var iAA = iA + i,
+                                jAA = jA + j;
+                            if (iAA >= 0 && iAA < this.BOARD_NUMBER &&
+                                jAA >= 0 && jAA < this.BOARD_NUMBER) {
+                                if (this.cells[iAA][jAA].getChecker() == null && (iAA != oldIP || jAA != oldJP)) {
+                                    deleted.push(cell1);
+                                    //
+                                    this.cells[iAA][jAA].setDeletedCheckers(
+                                        this.cells[iAA][jAA].getDeletedCheckers().concat(
+                                            this.cells[iP][jP].getDeletedCheckers()
+                                        ));
+                                    this.cells[iP][jP].setDeletedCheckers([]);
+                                    this.cells[iAA][jAA].addDeletedChecker(cell1.getChecker());
+                                    var oldSize = moves.length;
+                                    this.scanNeighbors(mainChecker, iAA, jAA, curPlayer, 0, moves, deleted, iP, jP);
+                                    if (oldSize == moves.length) {
+                                        moves.push(this.cells[iAA][jAA]);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-
+                if(!mainChecker.king)  //only one step by diagonally for usual checker
+                    break;
             }
         }
     }
@@ -185,3 +189,27 @@ Board.prototype.moveChecker = function (checker, newCell) {
     }
     this.endStep();
 }
+Board.prototype.setAddCheckersMode = function (value, team) {
+    var thisCmp = this;
+    if (value) {
+        for (var i = 0; i < this.BOARD_NUMBER; i++) {
+            for (var j = 0; j < this.BOARD_NUMBER; j++) {
+                var cell = this.cells[i][j];
+                cell.getCell().click((function (cell) {
+                    return function () {
+                        var c = new Checker(thisCmp.cellSize, team == 1 ? 'yellow' : 'red', 4, team, thisCmp);
+                        c.addTo(cell);
+                    }
+                })(cell));
+            }
+        }
+    } else {
+        for (var i = 0; i < this.BOARD_NUMBER; i++) {
+            for (var j = 0; j < this.BOARD_NUMBER; j++) {
+                this.cells[i][j].getCell().unbind('click');
+            }
+        }
+    }
+
+}
+

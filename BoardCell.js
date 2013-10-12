@@ -3,6 +3,7 @@ function BoardCell(size,i, j) {
 		nativeColor = (i%2==0 && j%2!=0) || (i%2!=0 && j%2==0)?BoardCell.strongColor:BoardCell.lightColor;
 	el.css({
 		'float':'left',
+        position:'relative',
 		width:size,
 		height:size,
 		backgroundColor: nativeColor 
